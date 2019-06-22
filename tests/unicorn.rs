@@ -567,6 +567,31 @@ fn emulate_mips() {
 }
 
 #[test]
+fn emulate_mipsbe() {
+    let mipsbe_code32 = vec![0x34, 0x21, 0x34, 0x56]; // ori $at, $at, 0x3456;
+
+    let emu = CpuMIPS::new(unicorn::Mode::MODE_32 | unicorn::Mode::BIG_ENDIAN)
+        .expect("failed to instantiate emulator");
+    assert_eq!(
+        emu.mem_map(0x1000, 0x4000, unicorn::Protection::ALL),
+        Ok(())
+    );
+
+    assert_eq!(emu.mem_write(0x1000, &mipsbe_code32), Ok(()));
+    assert_eq!(emu.reg_write(unicorn::RegisterMIPS::AT, 0), Ok(()));
+    assert_eq!(
+        emu.emu_start(
+            0x1000,
+            (0x1000 + mipsbe_code32.len()) as u64,
+            10 * unicorn::SECOND_SCALE,
+            1000
+        ),
+        Ok(())
+    );
+    assert_eq!(emu.reg_read(unicorn::RegisterMIPS::AT), Ok(0x3456));
+}
+
+#[test]
 fn mem_unmapping() {
     let emu = CpuX86::new(unicorn::Mode::MODE_32).expect("failed to instantiate emulator");
     assert_eq!(
